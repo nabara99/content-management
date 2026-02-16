@@ -41,13 +41,30 @@
                     Users
                 </a>
 
+                <a href="{{ route('admin.instances.index') }}"
+                    class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                    {{ request()->routeIs('admin.instances.*') ? 'text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}"
+                    @if(request()->routeIs('admin.instances.*')) style="background: linear-gradient(135deg, #2563EB, #1D4ED8);" @endif>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                    Instansi
+                </a>
+
                 <p class="px-3 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Konten</p>
 
-                <a href="#"
-                    class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-all duration-150">
+                <a href="{{ route('admin.templates.index') }}"
+                    class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                    {{ request()->routeIs('admin.templates.*') ? 'text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}"
+                    @if(request()->routeIs('admin.templates.*')) style="background: linear-gradient(135deg, #2563EB, #1D4ED8);" @endif>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     Templates
-                    <span class="ml-auto text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">Soon</span>
+                </a>
+
+                <a href="{{ route('admin.contents.index') }}"
+                    class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                    {{ request()->routeIs('admin.contents.*') ? 'text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}"
+                    @if(request()->routeIs('admin.contents.*')) style="background: linear-gradient(135deg, #2563EB, #1D4ED8);" @endif>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    Konten
                 </a>
 
             </nav>

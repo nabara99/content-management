@@ -100,15 +100,11 @@
         {{-- Right Side - Login Form --}}
         <div class="w-full lg:w-1/2 flex items-center justify-center px-6 py-12">
             <div class="w-full max-w-md">
-                {{-- Mobile logo --}}
-                <div class="lg:hidden flex items-center justify-center gap-4 mb-2">
-                    <img src="{{ asset('images/tanbu.png') }}" alt="Tanah Bumbu" class="h-12">
-                    <img src="{{ asset('images/beraksi.png') }}" alt="BerAKSI" class="h-9">
+                <div class="flex items-center justify-center mb-2">
+                    <img src="{{ asset('images/tanbu.png') }}" alt="Tanah Bumbu" class="w-15">
                 </div>
-
-                <div class="flex items-center gap-4 mb-2">
-                    <img src="{{ asset('images/tanbu.png') }}" alt="Tanah Bumbu" class="w-17">
-                    <img src="{{ asset('images/beraksi.png') }}" alt="BerAKSI" class="w-70">
+                <div class="flex items-center justify-center">
+                    <img src="{{ asset('images/beraksi.png') }}" alt="BerAKSI" class="h-13">
                 </div>
 
                 <div class="mb-8">
@@ -162,6 +158,27 @@
                         </div>
                     </div>
 
+                    
+                    {{-- Captcha --}}
+                    <div class="mb-5" x-data="captcha()" x-init="load()">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Captcha</label>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="flex-1 px-4 py-3 rounded-lg text-lg font-bold tracking-wider text-center select-none"
+                                style="background: #EFF6FF; color: #1D4ED8; border: 2px dashed #93C5FD;">
+                                <span x-text="question" class="inline-block min-w-[100px]">Memuat...</span>
+                            </div>
+                            <button type="button" @click="load()"
+                                class="p-2.5 rounded-lg border border-gray-300 text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                                title="Refresh captcha">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            </button>
+                        </div>
+                        <input type="number" name="captcha" placeholder="Jawaban"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none transition-colors"
+                            onfocus="this.style.boxShadow=&#039;0 0 0 3px rgba(37,99,235,0.15)&#039;; this.style.borderColor=&#039;#2563EB&#039;"
+                            onblur="this.style.boxShadow=&#039;none&#039;; this.style.borderColor=&#039;#d1d5db&#039;">
+                    </div>
+
                     <button type="submit"
                         class="w-full text-white font-semibold py-3 rounded-lg transition-all duration-200 hover:shadow-lg"
                         style="background: linear-gradient(135deg, #2563EB, #1D4ED8);"
@@ -180,6 +197,20 @@
         </div>
 
     </div>
+
+    <script>
+        function captcha() {
+            return {
+                question: "Memuat...",
+                load() {
+                    fetch("/captcha")
+                        .then(r => r.json())
+                        .then(data => this.question = data.question)
+                        .catch(() => this.question = "Gagal memuat");
+                }
+            }
+        }
+    </script>
 </body>
 
 </html>

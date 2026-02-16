@@ -70,9 +70,6 @@
                             <tr class="hover:bg-gray-50">
                                 <td class="py-3">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background: #FBBF24;">
-                                            {{ strtoupper(substr($user->name, 0, 1)) }}
-                                        </div>
                                         <span class="text-sm font-medium text-gray-800">{{ $user->name }}</span>
                                     </div>
                                 </td>
