@@ -16,7 +16,7 @@
             <div class="flex items-center justify-between h-16">
 
                 {{-- Left: Logo + Nav Links --}}
-                <div class="flex items-center gap-8">
+                <div class="flex items-center gap-8 min-w-0">
                     {{-- Logo --}}
                     <a href="{{ route('user.dashboard') }}" class="flex items-center gap-2 flex-shrink-0">
                         <img src="{{ asset('images/tanbu.png') }}" alt="Tanah Bumbu" class="h-9">
@@ -41,7 +41,7 @@
                 </div>
 
                 {{-- Right: Profile + Logout --}}
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 flex-shrink-0 relative z-10">
                     {{-- Profile Dropdown --}}
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
