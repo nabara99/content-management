@@ -52,7 +52,7 @@
     {{-- Table --}}
     <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full">
+            <table class="w-full min-w-[500px]">
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr>
                         <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">#</th>

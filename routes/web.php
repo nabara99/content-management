@@ -7,7 +7,9 @@ use App\Livewire\Admin\InstanceManager;
 use App\Livewire\Admin\ContentManager as AdminContentManager;
 use App\Livewire\Admin\TemplateManager;
 use App\Livewire\Admin\UserManager;
+use App\Livewire\Admin\Settings as AdminSettings;
 use App\Livewire\User\ContentManager;
+use App\Livewire\User\Settings as UserSettings;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login
@@ -36,10 +38,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/instances', InstanceManager::class)->name('instances.index');
     Route::get('/templates', TemplateManager::class)->name('templates.index');
     Route::get('/contents', AdminContentManager::class)->name('contents.index');
+    Route::get('/settings', AdminSettings::class)->name('settings');
 });
 
 // User routes
 Route::middleware(['auth', 'role:user'])->prefix('user')->name('user.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\User\UserDashboardController::class, 'index'])->name('dashboard');
     Route::get('/contents', ContentManager::class)->name('contents.index');
+    Route::get('/settings', UserSettings::class)->name('settings');
 });
