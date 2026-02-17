@@ -20,6 +20,19 @@ class TwibbonRenderer
 
     public static function render(Content $content): string
     {
+        // GD requires significant memory for large images
+        $previousLimit = ini_get('memory_limit');
+        ini_set('memory_limit', '512M');
+
+        try {
+            return self::doRender($content);
+        } finally {
+            ini_set('memory_limit', $previousLimit);
+        }
+    }
+
+    private static function doRender(Content $content): string
+    {
         $content->loadMissing(['template.slots', 'images']);
 
         $templatePath = Storage::disk('public')->path($content->template->image);
@@ -33,14 +46,18 @@ class TwibbonRenderer
 
         // Create canvas
         $canvas = imagecreatetruecolor($width, $height);
-        imagealphablending($canvas, true);
         imagesavealpha($canvas, true);
 
-        // Fill with white background
+        // Fill with white background (disable blending for clean fill)
+        imagealphablending($canvas, false);
         $white = imagecolorallocate($canvas, 255, 255, 255);
         imagefill($canvas, 0, 0, $white);
 
-        // Render each slot with user photo
+        // Re-enable alpha blending for compositing
+        imagealphablending($canvas, true);
+
+        // Render each slot: paste photo directly onto canvas
+        // Template overlay on top will naturally clip/mask the photos
         foreach ($content->template->slots as $slot) {
             $contentImg = $content->images->where('slot_number', $slot->slot_number)->first();
             if (!$contentImg) continue;
@@ -56,7 +73,6 @@ class TwibbonRenderer
 
             if ($slotW <= 0 || $slotH <= 0) continue;
 
-            // Apply scale and offset
             $photoW = imagesx($photo);
             $photoH = imagesy($photo);
             $scale = (float) ($contentImg->scale ?: 1);
@@ -68,35 +84,17 @@ class TwibbonRenderer
             $scaledW = (int) round($photoW * $totalScale);
             $scaledH = (int) round($photoH * $totalScale);
 
-            $scaledPhoto = imagecreatetruecolor($scaledW, $scaledH);
-            imagealphablending($scaledPhoto, true);
-            imagesavealpha($scaledPhoto, true);
-            imagecopyresampled($scaledPhoto, $photo, 0, 0, 0, 0, $scaledW, $scaledH, $photoW, $photoH);
+            // Center in slot + user offset
+            $destX = $slotX + (int) round(($slotW - $scaledW) / 2) + (int) round($contentImg->offset_x);
+            $destY = $slotY + (int) round(($slotH - $scaledH) / 2) + (int) round($contentImg->offset_y);
+
+            // Paste scaled photo directly onto canvas
+            imagecopyresampled($canvas, $photo, $destX, $destY, 0, 0, $scaledW, $scaledH, $photoW, $photoH);
             imagedestroy($photo);
-
-            // Center photo in slot, then apply offset
-            $centerOffsetX = (int) round(($slotW - $scaledW) / 2);
-            $centerOffsetY = (int) round(($slotH - $scaledH) / 2);
-
-            $offsetX = $centerOffsetX + (int) round($contentImg->offset_x);
-            $offsetY = $centerOffsetY + (int) round($contentImg->offset_y);
-
-            // Create clipped slot
-            $slotCanvas = imagecreatetruecolor($slotW, $slotH);
-            imagealphablending($slotCanvas, true);
-            imagesavealpha($slotCanvas, true);
-            $transparent = imagecolorallocatealpha($slotCanvas, 0, 0, 0, 127);
-            imagefill($slotCanvas, 0, 0, $transparent);
-
-            imagecopy($slotCanvas, $scaledPhoto, $offsetX, $offsetY, 0, 0, $scaledW, $scaledH);
-            imagedestroy($scaledPhoto);
-
-            // Paste slot onto canvas
-            imagecopy($canvas, $slotCanvas, $slotX, $slotY, 0, 0, $slotW, $slotH);
-            imagedestroy($slotCanvas);
         }
 
-        // Paste template overlay (with alpha)
+        // Paste template overlay on top (PNG with transparency)
+        // Opaque parts of template cover photo overflow, transparent parts show photos
         imagecopy($canvas, $templateImg, 0, 0, 0, 0, $width, $height);
         imagedestroy($templateImg);
 
@@ -151,35 +149,125 @@ class TwibbonRenderer
     ): void {
         $fontPath = self::getFontPath($fontFamily, $bold, $italic);
 
-        // Scale font size proportionally to canvas (base reference: 400px preview)
-        $scaledSize = (int) round($fontSize * ($canvasW / 400));
+        // Scale font size proportionally to canvas
+        // Preview uses fontSize * 0.6 at ~400px width; GD uses points (1pt ≈ 1.33px)
+        // So convert: pixelSize * 0.75 = pointSize
+        $scaledSize = (int) round($fontSize * 0.6 * ($canvasW / 400) * 0.75);
+        $scaledSize = max(1, $scaledSize);
 
         $rgb = self::hexToRgb($color);
         $textColor = imagecolorallocate($canvas, $rgb[0], $rgb[1], $rgb[2]);
 
-        // Calculate text position
+        // Calculate base text position
         $x = (int) round($xPercent / 100 * $canvasW);
         $y = (int) round($yPercent / 100 * $canvasH);
 
-        // Get text bounding box to center horizontally
-        $bbox = imagettfbbox($scaledSize, 0, $fontPath, $text);
-        $textWidth = abs($bbox[2] - $bbox[0]);
-        $textHeight = abs($bbox[7] - $bbox[1]);
+        // Max text width (90% of canvas, matching CSS max-w-[90%])
+        $maxTextWidth = (int) round($canvasW * 0.9);
 
-        // Center text at x position (translateX(-50%))
-        $drawX = $x - (int) round($textWidth / 2);
-        $drawY = $y + (int) round($textHeight / 2);
-
-        imagettftext($canvas, $scaledSize, 0, $drawX, $drawY, $textColor, $fontPath, $text);
-
-        // Underline
-        if ($underline) {
-            $lineY = $drawY + (int) round($scaledSize * 0.15);
-            $thickness = max(1, (int) round($scaledSize / 15));
-            imagesetthickness($canvas, $thickness);
-            imageline($canvas, $drawX, $lineY, $drawX + $textWidth, $lineY, $textColor);
-            imagesetthickness($canvas, 1);
+        // Split text into lines (explicit newlines) then word-wrap long lines
+        $rawLines = explode("\n", $text);
+        $lines = [];
+        foreach ($rawLines as $rawLine) {
+            $rawLine = trim($rawLine, "\r");
+            $wrapped = self::wordWrap($rawLine, $scaledSize, $fontPath, $maxTextWidth);
+            foreach ($wrapped as $wl) {
+                $lines[] = $wl;
+            }
         }
+
+        $lineHeight = (int) round($scaledSize * 1.8);
+
+        // Calculate total block height to position at y
+        $totalHeight = $lineHeight * count($lines);
+        $startY = $y;
+
+        foreach ($lines as $i => $line) {
+            if ($line === '') continue;
+
+            // Get text bounding box to center horizontally
+            $bbox = imagettfbbox($scaledSize, 0, $fontPath, $line);
+            $textWidth = abs($bbox[2] - $bbox[0]);
+            $textHeight = abs($bbox[7] - $bbox[1]);
+
+            // Center text at x position (translateX(-50%))
+            $drawX = $x - (int) round($textWidth / 2);
+            $drawY = $startY + ($i * $lineHeight) + $textHeight;
+
+            imagettftext($canvas, $scaledSize, 0, $drawX, $drawY, $textColor, $fontPath, $line);
+
+            // Underline
+            if ($underline) {
+                $lineYPos = $drawY + (int) round($scaledSize * 0.15);
+                $thickness = max(1, (int) round($scaledSize / 15));
+                imagesetthickness($canvas, $thickness);
+                imageline($canvas, $drawX, $lineYPos, $drawX + $textWidth, $lineYPos, $textColor);
+                imagesetthickness($canvas, 1);
+            }
+        }
+    }
+
+    /**
+     * Word-wrap a single line of text to fit within maxWidth pixels.
+     */
+    private static function wordWrap(string $text, int $fontSize, string $fontPath, int $maxWidth): array
+    {
+        if ($text === '') return [''];
+
+        // Check if the whole line fits
+        $bbox = imagettfbbox($fontSize, 0, $fontPath, $text);
+        $fullWidth = abs($bbox[2] - $bbox[0]);
+        if ($fullWidth <= $maxWidth) {
+            return [$text];
+        }
+
+        // Try word-based wrapping first
+        $words = preg_split('/(\s+)/', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+        $lines = [];
+        $currentLine = '';
+
+        foreach ($words as $word) {
+            $testLine = $currentLine . $word;
+            $bbox = imagettfbbox($fontSize, 0, $fontPath, $testLine);
+            $testWidth = abs($bbox[2] - $bbox[0]);
+
+            if ($testWidth > $maxWidth && $currentLine !== '') {
+                $lines[] = rtrim($currentLine);
+                $currentLine = ltrim($word);
+            } else {
+                $currentLine = $testLine;
+            }
+        }
+        if ($currentLine !== '') {
+            $lines[] = rtrim($currentLine);
+        }
+
+        // If any line still exceeds max width (single long word), force-break by character
+        $result = [];
+        foreach ($lines as $line) {
+            $bbox = imagettfbbox($fontSize, 0, $fontPath, $line);
+            if (abs($bbox[2] - $bbox[0]) <= $maxWidth) {
+                $result[] = $line;
+                continue;
+            }
+            $chars = mb_str_split($line);
+            $cur = '';
+            foreach ($chars as $char) {
+                $test = $cur . $char;
+                $bbox = imagettfbbox($fontSize, 0, $fontPath, $test);
+                if (abs($bbox[2] - $bbox[0]) > $maxWidth && $cur !== '') {
+                    $result[] = $cur;
+                    $cur = $char;
+                } else {
+                    $cur = $test;
+                }
+            }
+            if ($cur !== '') {
+                $result[] = $cur;
+            }
+        }
+
+        return $result;
     }
 
     private static function getFontPath(string $family, bool $bold, bool $italic): string

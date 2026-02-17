@@ -236,6 +236,8 @@ class ContentManager extends Component
                 'status' => 'published',
                 'final_image' => $finalPath,
             ]);
+            $this->showDetailModal = false;
+            $this->viewingContent = null;
             session()->flash('message', 'Konten berhasil di-approve dan dipublikasikan.');
         } catch (\Throwable $e) {
             session()->flash('error', 'Gagal generate gambar final: ' . $e->getMessage());
@@ -255,6 +257,8 @@ class ContentManager extends Component
             'final_image' => null,
         ]);
 
+        $this->showDetailModal = false;
+        $this->viewingContent = null;
         session()->flash('message', 'Konten dikembalikan ke status draft.');
     }
 

@@ -106,6 +106,13 @@
                             class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
                             Detail
                         </button>
+                        @if($content->final_image && $content->status === 'published')
+                            <a href="{{ asset('storage/' . $content->final_image) }}" download="{{ Str::slug($content->title) }}.png"
+                                class="px-3 py-1.5 text-xs font-medium rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors inline-flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                Download
+                            </a>
+                        @endif
                         <button wire:click="openEditModal({{ $content->id }})"
                             class="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
                             style="color: #2563EB; background: rgba(37, 99, 235, 0.1);"
@@ -648,7 +655,15 @@
                 </div>
             </div>
 
-            <div class="flex justify-end mt-6">
+            <div class="flex justify-between mt-6">
+                <div>
+                    @if($viewingContent->final_image && $viewingContent->status === 'published')
+                        <a href="{{ asset('storage/' . $viewingContent->final_image) }}" download="{{ Str::slug($viewingContent->title) }}.png" class="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors inline-flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            Download
+                        </a>
+                    @endif
+                </div>
                 <button wire:click="$set('showDetailModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
                     Tutup
                 </button>
